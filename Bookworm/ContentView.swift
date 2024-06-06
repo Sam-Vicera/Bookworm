@@ -6,19 +6,75 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) var modelContext
+    @Query(sort: 
+            [SortDescriptor(\Book.title, order: .reverse),
+             SortDescriptor(\Book.author)
+            ]) var books: [Book]
+    
+    @State private var showingAddScreen = false
+    
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        NavigationStack {
+            List {
+                ForEach(books) { book in
+                    
+                    var showingRedFontColor: Bool {
+                        if book.rating == 1 { return true}
+                        else {return false}
+                    }
+
+                    NavigationLink(value: book) {
+                        HStack{
+                            EmojiRatingView(rating: book.rating)
+                                .font(.largeTitle)
+                            
+                            VStack(alignment: .leading){
+                                Text(book.title)
+                                    .font(.headline)
+                                    .foregroundStyle(showingRedFontColor ? .red : .black)
+                                
+                                Text(book.author)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        
+                    }
+                }
+                .onDelete(perform: deleteBooks)
+                
+            }
+            .navigationTitle("Bookworm")
+            .navigationDestination(for: Book.self) { book in
+                DetailView(book: book)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Add Book", systemImage: "plus"){
+                        showingAddScreen.toggle()
+                    }
+                }
+                ToolbarItem(placement: .topBarLeading) {
+                        EditButton()
+                }
+            }
+            .sheet(isPresented: $showingAddScreen) {
+                AddBookView()
+            }
         }
-        .padding()
+    }
+    
+    func deleteBooks(at offsets: IndexSet) {
+        for offset in offsets {
+            let book = books[offset]
+            modelContext.delete(book)
+            
+        }
     }
 }
-
 #Preview {
     ContentView()
 }
